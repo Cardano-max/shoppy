@@ -11,7 +11,7 @@ import {
   ShoppingCart,
   X,
 } from 'lucide-react'
-import { useMemo, useState, type ComponentType } from 'react'
+import { useEffect, useMemo, useState, type ComponentType } from 'react'
 
 const shareOptions: { label: string; icon: ComponentType<{ className?: string }>; color: string }[] = [
   { label: 'WhatsApp', icon: Phone, color: 'bg-emerald-500' },
@@ -51,49 +51,111 @@ const sparklineData = [
   [40, 35, 38, 44, 42, 48, 40, 49],
 ]
 
-const sparklineLabels = ['Week 1', 'Week 2', 'Week 3']
-const periodOptions = ['Today', 'Yesterday', 'Last Week', 'Last Month', 'All']
+const periodOptions = [
+  { label: 'Today', value: 'today' },
+  { label: 'This Week', value: 'week' },
+  { label: 'This Month', value: 'month' },
+  { label: 'This Year', value: 'year' },
+]
+
+interface DashboardStats {
+  stats: {
+    totalOrders: number
+    totalSales: number
+    lowStockProducts: number
+    abandonedCarts: number
+    totalCustomers: number
+    totalProducts: number
+  }
+  recentOrders: any[]
+  topProducts: any[]
+  salesTrend: { date: string; sales: number }[]
+}
 
 export default function Dashboard() {
-  const [selectedPeriod, setSelectedPeriod] = useState('Today')
+  const [selectedPeriod, setSelectedPeriod] = useState('today')
+  const [dashboardData, setDashboardData] = useState<DashboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchDashboardStats()
+  }, [selectedPeriod])
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const response = await fetch(`/api/dashboard/stats?period=${selectedPeriod}`)
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard stats')
+      }
+
+      const data = await response.json()
+      setDashboardData(data)
+    } catch (err: any) {
+      console.error('Error fetching dashboard stats:', err)
+      setError(err.message || 'Failed to load dashboard data')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const insightCards = useMemo(
     () => [
       {
         label: 'Sales',
-        value: '₹0',
+        value: loading ? '...' : `₹${dashboardData?.stats.totalSales.toLocaleString('en-IN') || 0}`,
         helper: 'vs last period',
-        change: '+0%',
+        change: loading ? '...' : `${dashboardData?.stats.totalOrders || 0} orders`,
         icon: TrendingUp,
         gradient: 'from-sky-50 via-sky-100 to-sky-50 text-sky-600',
       },
       {
         label: 'Orders',
-        value: '0',
+        value: loading ? '...' : String(dashboardData?.stats.totalOrders || 0),
         helper: 'pending fulfillment',
-        change: '0 new',
+        change: loading ? '...' : `${dashboardData?.recentOrders?.length || 0} recent`,
         icon: ShoppingCart,
         gradient: 'from-emerald-50 via-emerald-100 to-emerald-50 text-emerald-600',
       },
       {
         label: 'Low Stock',
-        value: '0',
+        value: loading ? '...' : String(dashboardData?.stats.lowStockProducts || 0),
         helper: 'items require restock',
-        change: 'healthy',
+        change: loading ? '...' : dashboardData?.stats.lowStockProducts === 0 ? 'healthy' : 'needs attention',
         icon: TrendingDown,
         gradient: 'from-amber-50 via-amber-100 to-amber-50 text-amber-600',
       },
       {
         label: 'Abandoned Carts',
-        value: '0',
+        value: loading ? '...' : String(dashboardData?.stats.abandonedCarts || 0),
         helper: 'recover the lost revenue',
-        change: 'n/a',
+        change: loading ? '...' : 'this period',
         icon: X,
         gradient: 'from-rose-50 via-rose-100 to-rose-50 text-rose-600',
       },
     ],
-    []
+    [dashboardData, loading]
   )
+
+  if (error) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="rounded-2xl bg-red-50 p-6 text-center">
+          <p className="font-semibold text-red-900">Failed to load dashboard</p>
+          <p className="mt-2 text-sm text-red-700">{error}</p>
+          <button
+            onClick={() => fetchDashboardStats()}
+            className="mt-4 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -184,22 +246,30 @@ export default function Dashboard() {
               className="rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-600 focus:border-slate-400 focus:outline-none"
             >
               {periodOptions.map((option) => (
-                <option key={option}>{option}</option>
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
               ))}
             </select>
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {sparklineLabels.map((label, idx) => (
-              <div key={label} className="rounded-2xl border border-slate-100 bg-white p-4">
-                <p className="text-xs uppercase tracking-[0.4em] text-slate-400">{label}</p>
-                <p className="mt-4 text-3xl font-semibold text-slate-900">{sparklineData[idx][sparklineData[idx].length - 1]}%</p>
-                <div className="mt-4 flex items-end gap-1">
-                  {sparklineData[idx].map((value, barIndex) => (
-                    <div key={barIndex} className="w-3 rounded-full bg-slate-100" style={{ height: `${value}px` }} />
-                  ))}
-                </div>
-              </div>
-            ))}
+            <div className="rounded-2xl border border-slate-100 bg-white p-4">
+              <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Total Sales</p>
+              <p className="mt-4 text-3xl font-semibold text-slate-900">
+                {loading ? '...' : `₹${dashboardData?.stats.totalSales.toLocaleString('en-IN') || 0}`}
+              </p>
+              <p className="mt-2 text-xs text-slate-500">{loading ? '...' : `From ${dashboardData?.stats.totalOrders || 0} orders`}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-100 bg-white p-4">
+              <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Customers</p>
+              <p className="mt-4 text-3xl font-semibold text-slate-900">{loading ? '...' : dashboardData?.stats.totalCustomers || 0}</p>
+              <p className="mt-2 text-xs text-slate-500">Total registered</p>
+            </div>
+            <div className="rounded-2xl border border-slate-100 bg-white p-4">
+              <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Products</p>
+              <p className="mt-4 text-3xl font-semibold text-slate-900">{loading ? '...' : dashboardData?.stats.totalProducts || 0}</p>
+              <p className="mt-2 text-xs text-slate-500">Active products</p>
+            </div>
           </div>
         </div>
 
