@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 15, 23, 42;
+  --background-rgb: 248, 250, 252;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+  font-feature-settings: 'ss01' on, 'cv01' on;
+}
+
+.sidebar-blue {
+  background: linear-gradient(180deg, #0f172a 0%, #111c44 70%, #1d2f6f 100%);
+}
+
+.sidebar-light-blue {
+  background-color: #3b82f6;
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.05);
+}
+
+
+
