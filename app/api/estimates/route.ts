@@ -1,52 +1,42 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuth, AuthContext } from '@/lib/auth-middleware'
-import { createCustomerSchema } from '@/lib/validations'
+import { createEstimateSchema } from '@/lib/validations'
 
 export async function GET(request: Request) {
   return withAuth(async (req: Request, context: AuthContext) => {
     try {
       const { searchParams } = new URL(req.url)
-      const search = searchParams.get('search')
-      const type = searchParams.get('type')
+      const status = searchParams.get('status')
+      const customerId = searchParams.get('customerId')
 
       const where: any = {
         storeId: context.storeId,
       }
 
-      if (search) {
-        where.OR = [
-          { name: { contains: search, mode: 'insensitive' } },
-          { phone: { contains: search } },
-          { email: { contains: search, mode: 'insensitive' } },
-        ]
+      if (status) {
+        where.status = status
       }
 
-      if (type) {
-        where.type = type
+      if (customerId) {
+        where.customerId = customerId
       }
 
-      const customers = await prisma.customer.findMany({
+      const estimates = await prisma.estimate.findMany({
         where,
         include: {
-          orders: {
-            take: 5,
-            orderBy: { createdAt: 'desc' },
-          },
-          _count: {
-            select: { orders: true },
-          },
+          customer: true,
         },
         orderBy: {
           createdAt: 'desc',
         },
       })
 
-      return NextResponse.json(customers)
+      return NextResponse.json(estimates)
     } catch (error: any) {
-      console.error('Error fetching customers:', error)
+      console.error('Error fetching estimates:', error)
       return NextResponse.json(
-        { error: 'Failed to fetch customers', details: error?.message },
+        { error: 'Failed to fetch estimates', details: error?.message },
         { status: 500 }
       )
     }
@@ -59,18 +49,21 @@ export async function POST(request: Request) {
       const body = await req.json()
 
       // Validate request body
-      const validatedData = createCustomerSchema.parse(body)
+      const validatedData = createEstimateSchema.parse(body)
 
-      const customer = await prisma.customer.create({
+      const estimate = await prisma.estimate.create({
         data: {
           ...validatedData,
           storeId: context.storeId,
         },
+        include: {
+          customer: true,
+        },
       })
 
-      return NextResponse.json(customer, { status: 201 })
+      return NextResponse.json(estimate, { status: 201 })
     } catch (error: any) {
-      console.error('Error creating customer:', error)
+      console.error('Error creating estimate:', error)
       if (error.name === 'ZodError') {
         return NextResponse.json(
           { error: 'Validation failed', details: error.errors },
@@ -78,12 +71,9 @@ export async function POST(request: Request) {
         )
       }
       return NextResponse.json(
-        { error: 'Failed to create customer', details: error?.message },
+        { error: 'Failed to create estimate', details: error?.message },
         { status: 500 }
       )
     }
   })(request)
 }
-
-
-

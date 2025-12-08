@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-const authHandler = NextAuth({
+const handler = NextAuth({
   session: {
     strategy: 'jwt',
   },
@@ -62,7 +62,7 @@ const authHandler = NextAuth({
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.userId
+        session.user.id = token.userId as string
         session.user.defaultStoreId = token.storeId
         session.user.role = token.role
       }
@@ -71,9 +71,5 @@ const authHandler = NextAuth({
   },
 })
 
-const GET = authHandler.handlers.GET
-const POST = authHandler.handlers.POST
-const OPTIONS = async () => NextResponse.json({})
-
-export { GET, POST, OPTIONS }
+export { handler as GET, handler as POST }
 

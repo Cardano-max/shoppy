@@ -1,52 +1,34 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuth, AuthContext } from '@/lib/auth-middleware'
-import { createCustomerSchema } from '@/lib/validations'
+import { createCollectionSchema } from '@/lib/validations'
 
 export async function GET(request: Request) {
   return withAuth(async (req: Request, context: AuthContext) => {
     try {
       const { searchParams } = new URL(req.url)
       const search = searchParams.get('search')
-      const type = searchParams.get('type')
 
       const where: any = {
         storeId: context.storeId,
       }
 
       if (search) {
-        where.OR = [
-          { name: { contains: search, mode: 'insensitive' } },
-          { phone: { contains: search } },
-          { email: { contains: search, mode: 'insensitive' } },
-        ]
+        where.name = { contains: search, mode: 'insensitive' }
       }
 
-      if (type) {
-        where.type = type
-      }
-
-      const customers = await prisma.customer.findMany({
+      const collections = await prisma.collection.findMany({
         where,
-        include: {
-          orders: {
-            take: 5,
-            orderBy: { createdAt: 'desc' },
-          },
-          _count: {
-            select: { orders: true },
-          },
-        },
         orderBy: {
           createdAt: 'desc',
         },
       })
 
-      return NextResponse.json(customers)
+      return NextResponse.json(collections)
     } catch (error: any) {
-      console.error('Error fetching customers:', error)
+      console.error('Error fetching collections:', error)
       return NextResponse.json(
-        { error: 'Failed to fetch customers', details: error?.message },
+        { error: 'Failed to fetch collections', details: error?.message },
         { status: 500 }
       )
     }
@@ -59,18 +41,18 @@ export async function POST(request: Request) {
       const body = await req.json()
 
       // Validate request body
-      const validatedData = createCustomerSchema.parse(body)
+      const validatedData = createCollectionSchema.parse(body)
 
-      const customer = await prisma.customer.create({
+      const collection = await prisma.collection.create({
         data: {
           ...validatedData,
           storeId: context.storeId,
         },
       })
 
-      return NextResponse.json(customer, { status: 201 })
+      return NextResponse.json(collection, { status: 201 })
     } catch (error: any) {
-      console.error('Error creating customer:', error)
+      console.error('Error creating collection:', error)
       if (error.name === 'ZodError') {
         return NextResponse.json(
           { error: 'Validation failed', details: error.errors },
@@ -78,12 +60,9 @@ export async function POST(request: Request) {
         )
       }
       return NextResponse.json(
-        { error: 'Failed to create customer', details: error?.message },
+        { error: 'Failed to create collection', details: error?.message },
         { status: 500 }
       )
     }
   })(request)
 }
-
-
-

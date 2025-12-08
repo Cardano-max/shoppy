@@ -1,52 +1,39 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withAuth, AuthContext } from '@/lib/auth-middleware'
-import { createCustomerSchema } from '@/lib/validations'
+import { createCouponSchema } from '@/lib/validations'
 
 export async function GET(request: Request) {
   return withAuth(async (req: Request, context: AuthContext) => {
     try {
       const { searchParams } = new URL(req.url)
       const search = searchParams.get('search')
-      const type = searchParams.get('type')
+      const active = searchParams.get('active')
 
       const where: any = {
         storeId: context.storeId,
       }
 
       if (search) {
-        where.OR = [
-          { name: { contains: search, mode: 'insensitive' } },
-          { phone: { contains: search } },
-          { email: { contains: search, mode: 'insensitive' } },
-        ]
+        where.code = { contains: search, mode: 'insensitive' }
       }
 
-      if (type) {
-        where.type = type
+      if (active !== null) {
+        where.active = active === 'true'
       }
 
-      const customers = await prisma.customer.findMany({
+      const coupons = await prisma.coupon.findMany({
         where,
-        include: {
-          orders: {
-            take: 5,
-            orderBy: { createdAt: 'desc' },
-          },
-          _count: {
-            select: { orders: true },
-          },
-        },
         orderBy: {
           createdAt: 'desc',
         },
       })
 
-      return NextResponse.json(customers)
+      return NextResponse.json(coupons)
     } catch (error: any) {
-      console.error('Error fetching customers:', error)
+      console.error('Error fetching coupons:', error)
       return NextResponse.json(
-        { error: 'Failed to fetch customers', details: error?.message },
+        { error: 'Failed to fetch coupons', details: error?.message },
         { status: 500 }
       )
     }
@@ -59,18 +46,18 @@ export async function POST(request: Request) {
       const body = await req.json()
 
       // Validate request body
-      const validatedData = createCustomerSchema.parse(body)
+      const validatedData = createCouponSchema.parse(body)
 
-      const customer = await prisma.customer.create({
+      const coupon = await prisma.coupon.create({
         data: {
           ...validatedData,
           storeId: context.storeId,
         },
       })
 
-      return NextResponse.json(customer, { status: 201 })
+      return NextResponse.json(coupon, { status: 201 })
     } catch (error: any) {
-      console.error('Error creating customer:', error)
+      console.error('Error creating coupon:', error)
       if (error.name === 'ZodError') {
         return NextResponse.json(
           { error: 'Validation failed', details: error.errors },
@@ -78,12 +65,9 @@ export async function POST(request: Request) {
         )
       }
       return NextResponse.json(
-        { error: 'Failed to create customer', details: error?.message },
+        { error: 'Failed to create coupon', details: error?.message },
         { status: 500 }
       )
     }
   })(request)
 }
-
-
-
