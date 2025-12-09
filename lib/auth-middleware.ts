@@ -1,6 +1,9 @@
 import { getServerSession } from 'next-auth/next'
 import { NextResponse } from 'next/server'
-import { prisma } from './prisma'
+
+// MOCK MODE: Database tables not yet created
+// This uses session data directly without database queries
+// Replace with real database queries after running migrations
 
 export function withAuth(
   handler: (req: Request, context: AuthContext) => Promise<Response>
@@ -12,29 +15,19 @@ export function withAuth(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user's active store membership
-    const membership = await prisma.storeMembership.findFirst({
-      where: {
-        userId: session.user.id,
-        status: 'ACTIVE',
-      },
-      include: {
-        store: true,
-      },
-    })
-
-    if (!membership) {
-      return NextResponse.json(
-        { error: 'No active store membership found' },
-        { status: 403 }
-      )
-    }
+    // MOCK: Use session data directly without database query
+    const storeId = (session.user as any).defaultStoreId || `store-${session.user.id}`
+    const role = (session.user as any).role || 'OWNER'
 
     const context: AuthContext = {
       userId: session.user.id,
-      storeId: membership.storeId,
-      role: membership.role,
-      store: membership.store,
+      storeId: storeId,
+      role: role,
+      store: {
+        id: storeId,
+        name: 'Mock Store',
+        email: session.user.email || '',
+      },
       params,
     }
 

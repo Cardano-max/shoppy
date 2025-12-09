@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+
+// MOCK MODE: Database tables not yet created
+// This bypasses the database and simulates successful registration
+// Replace with real database implementation after running migrations
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -16,6 +18,61 @@ export async function POST(request: Request) {
     const body = await request.json()
 
     // Validate input
+    const validatedData = registerSchema.parse(body)
+
+    // MOCK: Simulate successful registration without database
+    console.log('Mock registration for:', validatedData.email)
+
+    // Generate mock IDs
+    const mockUserId = `mock-user-${Date.now()}`
+    const mockStoreId = `mock-store-${Date.now()}`
+
+    // Return success response
+    return NextResponse.json({
+      success: true,
+      message: 'Account created successfully! You can now use mock login.',
+      user: {
+        id: mockUserId,
+        email: validatedData.email.toLowerCase(),
+        name: validatedData.name,
+      },
+      store: {
+        id: mockStoreId,
+        name: validatedData.storeName,
+      },
+      mock: true,
+      note: 'Using mock authentication. Any email/password combination will work for login.',
+    }, { status: 201 })
+
+  } catch (error: any) {
+    console.error('Registration validation error:', error)
+
+    if (error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error.errors },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to validate registration data', details: error?.message },
+      { status: 500 }
+    )
+  }
+}
+
+/*
+TO ENABLE REAL DATABASE:
+
+1. Run migration: npx prisma db push
+2. Uncomment this code and replace the mock implementation above:
+
+import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
     const validatedData = registerSchema.parse(body)
 
     // Check if user already exists
@@ -35,7 +92,6 @@ export async function POST(request: Request) {
 
     // Create user and store in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create user
       const user = await tx.user.create({
         data: {
           email: validatedData.email.toLowerCase(),
@@ -46,7 +102,6 @@ export async function POST(request: Request) {
         },
       })
 
-      // Create store
       const store = await tx.store.create({
         data: {
           name: validatedData.storeName,
@@ -57,7 +112,6 @@ export async function POST(request: Request) {
         },
       })
 
-      // Create store membership
       await tx.storeMembership.create({
         data: {
           userId: user.id,
@@ -67,7 +121,6 @@ export async function POST(request: Request) {
         },
       })
 
-      // Create default category
       await tx.category.create({
         data: {
           name: 'Uncategorized',
@@ -81,7 +134,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Account created successfully! Please sign in.',
+      message: 'Account created successfully!',
       user: {
         id: result.user.id,
         email: result.user.email,
@@ -95,17 +148,10 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('Registration error:', error)
-
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      )
-    }
-
     return NextResponse.json(
       { error: 'Failed to create account', details: error?.message },
       { status: 500 }
     )
   }
 }
+*/
