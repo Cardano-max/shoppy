@@ -14,15 +14,44 @@ export async function GET(
           storeId: context.storeId,
         },
         include: {
-          customer: true,
+          customer: {
+            select: {
+              name: true,
+              email: true,
+              phone: true,
+            },
+          },
           items: {
             include: {
-              product: true,
+              product: {
+                select: {
+                  name: true,
+                  sku: true,
+                },
+              },
               variant: true,
             },
           },
-          payments: true,
-          shipments: true,
+          shippingAddress: {
+            select: {
+              line1: true,
+              line2: true,
+              city: true,
+              state: true,
+              postalCode: true,
+              country: true,
+            },
+          },
+          billingAddress: {
+            select: {
+              line1: true,
+              line2: true,
+              city: true,
+              state: true,
+              postalCode: true,
+              country: true,
+            },
+          },
           statusHistory: {
             include: {
               user: {
@@ -36,6 +65,8 @@ export async function GET(
               createdAt: 'desc',
             },
           },
+          payments: true,
+          shipments: true,
         },
       })
 
@@ -43,7 +74,7 @@ export async function GET(
         return NextResponse.json({ error: 'Order not found' }, { status: 404 })
       }
 
-      return NextResponse.json(order)
+      return NextResponse.json({ order })
     } catch (error: any) {
       console.error('Error fetching order:', error)
       return NextResponse.json(

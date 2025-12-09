@@ -30,11 +30,47 @@ export async function GET(request: Request) {
       const orders = await prisma.order.findMany({
         where,
         include: {
-          customer: true,
+          customer: {
+            select: {
+              name: true,
+              email: true,
+              phone: true,
+            },
+          },
           items: {
             include: {
-              product: true,
+              product: {
+                select: {
+                  name: true,
+                  sku: true,
+                },
+              },
               variant: true,
+            },
+          },
+          shippingAddress: {
+            select: {
+              line1: true,
+              line2: true,
+              city: true,
+              state: true,
+              postalCode: true,
+              country: true,
+            },
+          },
+          billingAddress: {
+            select: {
+              line1: true,
+              line2: true,
+              city: true,
+              state: true,
+              postalCode: true,
+              country: true,
+            },
+          },
+          statusHistory: {
+            orderBy: {
+              createdAt: 'desc',
             },
           },
           payments: true,
@@ -45,7 +81,7 @@ export async function GET(request: Request) {
         },
       })
 
-      return NextResponse.json(orders)
+      return NextResponse.json({ orders })
     } catch (error: any) {
       console.error('Error fetching orders:', error)
       return NextResponse.json(
