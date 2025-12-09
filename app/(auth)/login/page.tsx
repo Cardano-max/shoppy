@@ -54,7 +54,14 @@ export default function LoginPage() {
       setError(result.error)
       return
     }
-    router.replace('/dashboard')
+
+    // Check if there's a redirect parameter (for onboarding)
+    const redirectUrl = searchParams.get('redirect')
+    if (redirectUrl) {
+      router.replace(redirectUrl)
+    } else {
+      router.replace('/dashboard')
+    }
   }
 
   return (

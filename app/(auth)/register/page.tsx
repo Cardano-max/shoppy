@@ -40,6 +40,7 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
+      // Register the user
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -53,8 +54,11 @@ export default function RegisterPage() {
       }
 
       setSuccess(true)
+
+      // Automatically redirect to login page with registered flag
+      // User will need to sign in, then we'll redirect them to onboarding
       setTimeout(() => {
-        router.push('/login?registered=true')
+        router.push('/login?registered=true&redirect=/onboarding')
       }, 2000)
     } catch (err: any) {
       setError(err.message)

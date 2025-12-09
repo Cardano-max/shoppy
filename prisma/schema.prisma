@@ -47,6 +47,13 @@ model Store {
   email       String?
   logo        String?
   favicon     String?
+  description String?
+  address     String?
+  city        String?
+  state       String?
+  pincode     String?
+  gstNumber   String?
+  panNumber   String?
   wallet      Int      @default(0)
   planId      String?
   plan        StorePlan? @relation(fields: [planId], references: [id])
