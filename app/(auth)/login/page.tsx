@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import Link from 'next/link'
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -16,8 +17,16 @@ type LoginForm = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (searchParams.get('registered') === 'true') {
+      setSuccessMessage('Account created successfully! Please sign in.')
+    }
+  }, [searchParams])
 
   const {
     register,
@@ -80,6 +89,12 @@ export default function LoginPage() {
             {errors.password && <p className="mt-1 text-xs text-rose-500">{errors.password.message}</p>}
           </div>
 
+          {successMessage && (
+            <div className="rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-600 border border-green-100">
+              {successMessage}
+            </div>
+          )}
+
           {error && (
             <div className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-600 border border-rose-100">
               {error}
@@ -93,6 +108,13 @@ export default function LoginPage() {
           >
             {loading ? 'Signing in…' : 'Sign In'}
           </button>
+
+          <p className="text-center text-sm text-slate-600">
+            Don't have an account?{' '}
+            <Link href="/register" className="text-slate-900 font-semibold hover:underline">
+              Sign up
+            </Link>
+          </p>
         </form>
       </div>
     </div>
